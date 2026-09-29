@@ -1,3 +1,4 @@
+import pygame
 from pygame import mixer
 
 
@@ -15,7 +16,13 @@ class Sound:
         self.bump = mixer.Sound("./sfx/bump.ogg")
         self.stomp = mixer.Sound("./sfx/stomp.ogg")
         self.jump = mixer.Sound("./sfx/small_jump.ogg")
-        self.death = mixer.Sound("./sfx/death.wav")
+        try:
+            self.death = mixer.Sound("./sfx/death.wav")
+        except pygame.error as exc:
+            print(f"Warning: unable to load ./sfx/death.wav; using silence instead ({exc})")
+            frequency, sample_format, channels = mixer.get_init()
+            silence = bytes(int(frequency * 0.25 * channels * abs(sample_format) / 8))
+            self.death = mixer.Sound(buffer=silence)
         self.kick = mixer.Sound("./sfx/kick.ogg")
         self.brick_bump = mixer.Sound("./sfx/brick-bump.ogg")
         self.powerup = mixer.Sound('./sfx/powerup.ogg')
@@ -28,3 +35,4 @@ class Sound:
 
     def play_music(self, music):
         self.music_channel.play(music)
+
