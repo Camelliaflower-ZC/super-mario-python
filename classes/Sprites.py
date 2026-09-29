@@ -18,6 +18,36 @@ class Sprites:
                 "./sprites/RedMushroom.json"
             ]
         )
+        self.marioOriginalImages = {
+            name: sprite.image.copy()
+            for name, sprite in self.spriteCollection.items()
+            if name.startswith("mario_")
+        }
+        self.marioSkin = "red"
+
+    def setMarioSkin(self, skin):
+        if skin not in ("red", "green", "yellow"):
+            skin = "red"
+
+        replacementColors = {
+            "red": None,
+            "green": (0, 190, 0),
+            "yellow": (255, 220, 0),
+        }
+        replacement = replacementColors[skin]
+
+        for name, original in self.marioOriginalImages.items():
+            image = original.copy()
+            if replacement is not None:
+                for y in range(image.get_height()):
+                    for x in range(image.get_width()):
+                        color = image.get_at((x, y))
+                        if color.r == 255 and color.g == 49 and color.b == 24:
+                            image.set_at((x, y), (*replacement, color.a))
+            self.spriteCollection[name].image = image
+
+        self.marioSkin = skin
+        #给mario服装换颜色且保证人物不变
 
     def loadSprites(self, urlList):
         resDict = {}
