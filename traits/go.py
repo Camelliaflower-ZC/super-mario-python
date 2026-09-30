@@ -2,7 +2,7 @@ from pygame.transform import flip
 
 
 class GoTrait:
-    def __init__(self, animation, screen, camera, ent):
+    def __init__(self, animation, screen, camera, ent, equipment=None):
         self.animation = animation
         self.direction = 0
         self.heading = 1
@@ -13,6 +13,7 @@ class GoTrait:
         self.boost = False
         self.camera = camera
         self.entity = ent
+        self.equipment = equipment
 
     def update(self):
         if self.boost:
@@ -57,9 +58,15 @@ class GoTrait:
         self.update()
 
     def drawEntity(self):
+        image = self.animation.image
         if self.heading == 1:
-            self.screen.blit(self.animation.image, self.entity.getPos())
-        elif self.heading == -1:
-            self.screen.blit(
-                flip(self.animation.image, True, False), self.entity.getPos()
+            self.screen.blit(image, self.entity.getPos())
+        else:
+            self.screen.blit(flip(image, True, False), self.entity.getPos())
+        if self.equipment is not None:
+            self.equipment.draw(
+                self.screen,
+                self.entity.getPos(),
+                self.heading,
+                big=self.entity.rect.height > 32,
             )

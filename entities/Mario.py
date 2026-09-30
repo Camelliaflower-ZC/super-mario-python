@@ -35,10 +35,11 @@ bigAnimation = Animation(
 
 
 class Mario(EntityBase):
-    def __init__(self, x, y, level, screen, dashboard, sound, gravity=0.8):
+    def __init__(self, x, y, level, screen, dashboard, sound, equipment, gravity=0.8):
         super(Mario, self).__init__(x, y, gravity)
         self.camera = Camera(self.rect, self)
         self.sound = sound
+        self.equipment = equipment
         self.input = Input(self)
         self.inAir = False
         self.inJump = False
@@ -46,7 +47,7 @@ class Mario(EntityBase):
         self.invincibilityFrames = 0
         self.traits = {
             "jumpTrait": JumpTrait(self),
-            "goTrait": GoTrait(smallAnimation, screen, self.camera, self),
+            "goTrait": GoTrait(smallAnimation, screen, self.camera, self, equipment),
             "bounceTrait": bounceTrait(self),
         }
 

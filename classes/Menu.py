@@ -7,18 +7,22 @@ from classes.Spritesheet import Spritesheet
 
 
 class Menu:
-    def __init__(self, screen, dashboard, level, sound):
+    def __init__(self, screen, dashboard, level, sound, equipment):
         self.screen = screen
         self.sound = sound
         self.start = False
         self.inSettings = False
         self.state = 0
         self.level = level
+        self.equipment = equipment
         self.music = True
         self.sfx = True
         self.currSelectedLevel = 1
         self.levelNames = []
         self.inChoosingLevel = False
+        self.inChoosingEquipment = False
+        self.currSelectedEquipment = 0
+        self.equipmentOptions = ["none", "shield", "sword"]
         self.dashboard = dashboard
         self.levelCount = 0
         self.spritesheet = Spritesheet("./img/title_screen.png")
@@ -41,7 +45,7 @@ class Menu:
 
     def update(self):
         self.checkInput()
-        if self.inChoosingLevel:
+        if self.inChoosingLevel or self.inChoosingEquipment:
             return
 
         self.drawMenuBackground()
@@ -53,18 +57,10 @@ class Menu:
             self.drawSettings()
 
     def drawDot(self):
-        if self.state == 0:
-            self.screen.blit(self.menu_dot, (145, 273))
-            self.screen.blit(self.menu_dot2, (145, 313))
-            self.screen.blit(self.menu_dot2, (145, 353))
-        elif self.state == 1:
-            self.screen.blit(self.menu_dot, (145, 313))
-            self.screen.blit(self.menu_dot2, (145, 273))
-            self.screen.blit(self.menu_dot2, (145, 353))
-        elif self.state == 2:
-            self.screen.blit(self.menu_dot, (145, 353))
-            self.screen.blit(self.menu_dot2, (145, 273))
-            self.screen.blit(self.menu_dot2, (145, 313))
+        positions = (273, 313, 353) if self.inSettings else (243, 283, 323, 363)
+        for index, y in enumerate(positions):
+            dot = self.menu_dot if self.state == index else self.menu_dot2
+            self.screen.blit(dot, (145, y))
 
     def loadSettings(self, url):
         try:
@@ -94,9 +90,10 @@ class Menu:
 
     def drawMenu(self):
         self.drawDot()
-        self.dashboard.drawText("CHOOSE LEVEL", 180, 280, 24)
-        self.dashboard.drawText("SETTINGS", 180, 320, 24)
-        self.dashboard.drawText("EXIT", 180, 360, 24)
+        self.dashboard.drawText("CHOOSE LEVEL", 180, 250, 24)
+        self.dashboard.drawText("EQUIPMENT", 180, 290, 24)
+        self.dashboard.drawText("SETTINGS", 180, 330, 24)
+        self.dashboard.drawText("EXIT", 180, 370, 24)
 
     def drawMenuBackground(self, withBanner=True):
         for y in range(0, 13):
@@ -154,6 +151,32 @@ class Menu:
         self.levelNames = self.loadLevelNames()
         self.drawLevelChooser()
 
+    def chooseEquipment(self):
+        self.inChoosingEquipment = True
+        self.currSelectedEquipment = self.equipmentOptions.index(self.equipment.selected)
+        self.drawEquipmentChooser()
+
+    def drawEquipmentChooser(self):
+        self.drawMenuBackground(False)
+        self.dashboard.drawText("CHOOSE EQUIPMENT", 150, 115, 20)
+        labels = ("NONE", "SHIELD", "SWORD")
+        for index, label in enumerate(labels):
+            color = (255, 255, 255) if index == self.currSelectedEquipment else (150, 150, 150)
+            self.dashboard.drawText(label, 95 + index * 155, 180, 16)
+            pygame.draw.rect(self.screen, color, (80 + index * 155, 170, 125, 35), 2)
+
+        # Preview the selected gear on the original Mario sprite.
+        preview_x, preview_y = 300, 245
+        mario = self.level.sprites.spriteCollection.get("mario_idle").image
+        self.screen.blit(mario, (preview_x, preview_y))
+        selected = self.equipmentOptions[self.currSelectedEquipment]
+        original = self.equipment.selected
+        self.equipment.selected = selected
+        self.equipment.draw(self.screen, (preview_x, preview_y), 1)
+        self.equipment.selected = original
+        self.dashboard.drawText("LEFT/RIGHT: SELECT", 205, 355, 12)
+        self.dashboard.drawText("ENTER: EQUIP   ESC: BACK", 170, 375, 12)
+
     def drawBorder(self, x, y, width, height, color, thickness):
         pygame.draw.rect(self.screen, color, (x, y, width, thickness))
         pygame.draw.rect(self.screen, color, (x, y+width, width, thickness))
@@ -196,10 +219,16 @@ class Menu:
                 sys.exit()
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_ESCAPE:
-                    if self.inChoosingLevel or self.inSettings:
+                    if self.inChoosingLevel or self.inChoosingEquipment or self.inSettings:
                         self.inChoosingLevel = False
                         self.inSettings = False
-                        self.__init__(self.screen, self.dashboard, self.level, self.sound)
+                        self.__init__(
+                            self.screen,
+                            self.dashboard,
+                            self.level,
+                            self.sound,
+                            self.equipment,
+                        )
                     else:
                         pygame.quit()
                         sys.exit()
@@ -208,24 +237,37 @@ class Menu:
                         if self.currSelectedLevel > 3:
                             self.currSelectedLevel -= 3
                             self.drawLevelChooser()
-                    if self.state > 0:
+                    if not self.inChoosingEquipment and self.state > 0:
                         self.state -= 1
                 elif event.key == pygame.K_DOWN or event.key == pygame.K_j:
                     if self.inChoosingLevel:
                         if self.currSelectedLevel+3 <= self.levelCount:
                             self.currSelectedLevel += 3
                             self.drawLevelChooser()
-                    if self.state < 2:
+                    if not self.inChoosingEquipment and self.state < (2 if self.inSettings else 3):
                         self.state += 1
                 elif event.key == pygame.K_LEFT or event.key == pygame.K_h:
+                    if self.inChoosingEquipment:
+                        self.currSelectedEquipment = (self.currSelectedEquipment - 1) % len(self.equipmentOptions)
+                        self.drawEquipmentChooser()
+                        continue
                     if self.currSelectedLevel > 1:
                         self.currSelectedLevel -= 1
                         self.drawLevelChooser()
                 elif event.key == pygame.K_RIGHT or event.key == pygame.K_l:
+                    if self.inChoosingEquipment:
+                        self.currSelectedEquipment = (self.currSelectedEquipment + 1) % len(self.equipmentOptions)
+                        self.drawEquipmentChooser()
+                        continue
                     if self.currSelectedLevel < self.levelCount:
                         self.currSelectedLevel += 1
                         self.drawLevelChooser()
                 elif event.key == pygame.K_RETURN:
+                    if self.inChoosingEquipment:
+                        self.equipment.selected = self.equipmentOptions[self.currSelectedEquipment]
+                        self.inChoosingEquipment = False
+                        self.drawMenuBackground()
+                        continue
                     if self.inChoosingLevel:
                         self.inChoosingLevel = False
                         self.dashboard.state = "start"
@@ -238,9 +280,11 @@ class Menu:
                         if self.state == 0:
                             self.chooseLevel()
                         elif self.state == 1:
+                            self.chooseEquipment()
+                        elif self.state == 2:
                             self.inSettings = True
                             self.state = 0
-                        elif self.state == 2:
+                        elif self.state == 3:
                             pygame.quit()
                             sys.exit()
                     else:

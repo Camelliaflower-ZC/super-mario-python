@@ -1,4 +1,5 @@
 import pygame
+from classes.Equipment import Equipment
 from classes.Dashboard import Dashboard
 from classes.Level import Level
 from classes.Menu import Menu
@@ -9,7 +10,7 @@ from entities.Mario import Mario
 windowSize = 640, 480
 
 
-def main():
+def main(equipment):
     pygame.mixer.pre_init(44100, -16, 2, 4096)
     pygame.init()
     screen = pygame.display.set_mode(windowSize)
@@ -17,12 +18,12 @@ def main():
     dashboard = Dashboard("./img/font.png", 8, screen)
     sound = Sound()
     level = Level(screen, sound, dashboard)
-    menu = Menu(screen, dashboard, level, sound)
+    menu = Menu(screen, dashboard, level, sound, equipment)
 
     while not menu.start:
         menu.update()
 
-    mario = Mario(0, 0, level, screen, dashboard, sound)
+    mario = Mario(0, 0, level, screen, dashboard, sound, equipment)
     clock = pygame.time.Clock()
 
     while not mario.restart:
@@ -40,5 +41,6 @@ def main():
 
 if __name__ == "__main__":
     exitmessage = 'restart'
+    equipment = Equipment()
     while exitmessage == 'restart':
-        exitmessage = main()
+        exitmessage = main(equipment)
