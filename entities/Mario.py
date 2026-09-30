@@ -5,7 +5,6 @@ from classes.Camera import Camera
 from classes.Collider import Collider
 from classes.EntityCollider import EntityCollider
 from classes.Input import Input
-from classes.Sprites import Sprites
 from entities.EntityBase import EntityBase
 from entities.Mushroom import RedMushroom
 from traits.bounce import bounceTrait
@@ -13,30 +12,28 @@ from traits.go import GoTrait
 from traits.jump import JumpTrait
 from classes.Pause import Pause
 
-spriteCollection = Sprites().spriteCollection
-smallAnimation = Animation(
-    [
-        spriteCollection["mario_run1"].image,
-        spriteCollection["mario_run2"].image,
-        spriteCollection["mario_run3"].image,
-    ],
-    spriteCollection["mario_idle"].image,
-    spriteCollection["mario_jump"].image,
-)
-bigAnimation = Animation(
-    [
-        spriteCollection["mario_big_run1"].image,
-        spriteCollection["mario_big_run2"].image,
-        spriteCollection["mario_big_run3"].image,
-    ],
-    spriteCollection["mario_big_idle"].image,
-    spriteCollection["mario_big_jump"].image,
-)
-
-
 class Mario(EntityBase):
     def __init__(self, x, y, level, screen, dashboard, sound, equipment, gravity=0.8):
         super(Mario, self).__init__(x, y, gravity)
+        spriteCollection = level.sprites.spriteCollection
+        self.smallAnimation = Animation(
+            [
+                spriteCollection["mario_run1"].image,
+                spriteCollection["mario_run2"].image,
+                spriteCollection["mario_run3"].image,
+            ],
+            spriteCollection["mario_idle"].image,
+            spriteCollection["mario_jump"].image,
+        )
+        self.bigAnimation = Animation(
+            [
+                spriteCollection["mario_big_run1"].image,
+                spriteCollection["mario_big_run2"].image,
+                spriteCollection["mario_big_run3"].image,
+            ],
+            spriteCollection["mario_big_idle"].image,
+            spriteCollection["mario_big_jump"].image,
+        )
         self.camera = Camera(self.rect, self)
         self.sound = sound
         self.equipment = equipment
@@ -47,7 +44,7 @@ class Mario(EntityBase):
         self.invincibilityFrames = 0
         self.traits = {
             "jumpTrait": JumpTrait(self),
-            "goTrait": GoTrait(smallAnimation, screen, self.camera, self, equipment),
+            "goTrait": GoTrait(self.smallAnimation, screen, self.camera, self, equipment),
             "bounceTrait": bounceTrait(self),
         }
 
@@ -130,7 +127,8 @@ class Mario(EntityBase):
                 self.gameOver()
             elif self.powerUpState == 1:
                 self.powerUpState = 0
-                self.traits['goTrait'].updateAnimation(smallAnimation)
+                self.traits['goTrait'].updateAnimation(self.smallAnimation)
+                #保证小体型的颜色也跟选择的皮肤是一种颜色
                 x, y = self.rect.x, self.rect.y
                 self.rect = pygame.Rect(x, y + 32, 32, 32)
                 self.invincibilityFrames = 60
@@ -184,6 +182,7 @@ class Mario(EntityBase):
         if self.powerUpState == 0:
             if powerupID == 1:
                 self.powerUpState = 1
-                self.traits['goTrait'].updateAnimation(bigAnimation)
+                self.traits['goTrait'].updateAnimation(self.bigAnimation)
+                #保证大体型的颜色也跟选择的皮肤是一种颜色
                 self.rect = pygame.Rect(self.rect.x, self.rect.y-32, 32, 64)
                 self.invincibilityFrames = 20

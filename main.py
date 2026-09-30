@@ -8,9 +8,12 @@ from entities.Mario import Mario
 
 
 windowSize = 640, 480
+selectedSkin = "red"
+#初始颜色为红色
 
 
 def main(equipment):
+    global selectedSkin
     pygame.mixer.pre_init(44100, -16, 2, 4096)
     pygame.init()
     screen = pygame.display.set_mode(windowSize)
@@ -18,10 +21,11 @@ def main(equipment):
     dashboard = Dashboard("./img/font.png", 8, screen)
     sound = Sound()
     level = Level(screen, sound, dashboard)
-    menu = Menu(screen, dashboard, level, sound, equipment)
+    menu = Menu(screen, dashboard, level, sound, equipment, selectedSkin=selectedSkin)
 
     while not menu.start:
         menu.update()
+    selectedSkin = menu.selectedSkin
 
     mario = Mario(0, 0, level, screen, dashboard, sound, equipment)
     clock = pygame.time.Clock()

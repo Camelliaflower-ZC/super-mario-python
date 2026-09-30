@@ -7,11 +7,12 @@ from classes.Spritesheet import Spritesheet
 
 
 class Menu:
-    def __init__(self, screen, dashboard, level, sound, equipment):
+    def __init__(self, screen, dashboard, level, sound, equipment, selectedSkin="red"):
         self.screen = screen
         self.sound = sound
         self.start = False
         self.inSettings = False
+        self.inChoosingSkin = False
         self.state = 0
         self.level = level
         self.equipment = equipment
@@ -24,6 +25,8 @@ class Menu:
         self.currSelectedEquipment = 0
         self.equipmentOptions = ["none", "shield", "sword"]
         self.dashboard = dashboard
+        self.selectedSkin = selectedSkin
+        self.level.sprites.setMarioSkin(self.selectedSkin)
         self.levelCount = 0
         self.spritesheet = Spritesheet("./img/title_screen.png")
         self.menu_banner = self.spritesheet.image_at(
@@ -45,7 +48,7 @@ class Menu:
 
     def update(self):
         self.checkInput()
-        if self.inChoosingLevel or self.inChoosingEquipment:
+        if self.inChoosingLevel or self.inChoosingEquipment or self.inChoosingSkin:
             return
 
         self.drawMenuBackground()
@@ -57,7 +60,7 @@ class Menu:
             self.drawSettings()
 
     def drawDot(self):
-        positions = (273, 313, 353) if self.inSettings else (243, 283, 323, 363)
+        positions = (273, 313, 353) if self.inSettings else (243, 283, 323, 363, 403)
         for index, y in enumerate(positions):
             dot = self.menu_dot if self.state == index else self.menu_dot2
             self.screen.blit(dot, (145, y))
@@ -92,8 +95,26 @@ class Menu:
         self.drawDot()
         self.dashboard.drawText("CHOOSE LEVEL", 180, 250, 24)
         self.dashboard.drawText("EQUIPMENT", 180, 290, 24)
-        self.dashboard.drawText("SETTINGS", 180, 330, 24)
-        self.dashboard.drawText("EXIT", 180, 370, 24)
+        self.dashboard.drawText("SKIN", 180, 330, 24)
+        self.dashboard.drawText("SETTINGS", 180, 370, 24)
+        self.dashboard.drawText("EXIT", 180, 410, 24)
+
+    def chooseSkin(self):
+        self.inChoosingSkin = True
+        self.drawMenuBackground(False)
+        self.drawSkinChooser()
+
+    def drawSkinChooser(self):
+        skins = ("red", "green", "yellow")
+        labels = ("RED", "GREEN", "YELLOW")
+        positions = (85, 255, 425)
+        self.dashboard.drawText("CHOOSE MARIO SKIN", 145, 205, 18)
+        for skin, label, x in zip(skins, labels, positions):
+            color = (255, 255, 255) if skin == self.selectedSkin else (150, 150, 150)
+            pygame.draw.rect(self.screen, color, (x, 260, 130, 70), 4)
+            self.dashboard.drawText(label, x + 18, 283, 18)
+        self.dashboard.drawText("LEFT / RIGHT: SELECT", 165, 365, 14)
+        self.dashboard.drawText("ENTER: BACK", 205, 390, 14)
 
     def drawMenuBackground(self, withBanner=True):
         for y in range(0, 13):
@@ -219,16 +240,18 @@ class Menu:
                 sys.exit()
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_ESCAPE:
-                    if self.inChoosingLevel or self.inChoosingEquipment or self.inSettings:
+                    if self.inChoosingSkin:
+                        self.inChoosingSkin = False
+                        self.state = 2
+                    elif self.inChoosingEquipment:
+                        self.inChoosingEquipment = False
+                        self.state = 1
+                    elif self.inChoosingLevel:
                         self.inChoosingLevel = False
+                        self.state = 0
+                    elif self.inSettings:
                         self.inSettings = False
-                        self.__init__(
-                            self.screen,
-                            self.dashboard,
-                            self.level,
-                            self.sound,
-                            self.equipment,
-                        )
+                        self.state = 3
                     else:
                         pygame.quit()
                         sys.exit()
@@ -237,21 +260,24 @@ class Menu:
                         if self.currSelectedLevel > 3:
                             self.currSelectedLevel -= 3
                             self.drawLevelChooser()
-                    if not self.inChoosingEquipment and self.state > 0:
+                    elif not self.inChoosingEquipment and not self.inChoosingSkin and self.state > 0:
                         self.state -= 1
                 elif event.key == pygame.K_DOWN or event.key == pygame.K_j:
                     if self.inChoosingLevel:
                         if self.currSelectedLevel+3 <= self.levelCount:
                             self.currSelectedLevel += 3
                             self.drawLevelChooser()
-                    if not self.inChoosingEquipment and self.state < (2 if self.inSettings else 3):
+                    elif not self.inChoosingEquipment and not self.inChoosingSkin and self.state < (2 if self.inSettings else 4):
                         self.state += 1
                 elif event.key == pygame.K_LEFT or event.key == pygame.K_h:
                     if self.inChoosingEquipment:
                         self.currSelectedEquipment = (self.currSelectedEquipment - 1) % len(self.equipmentOptions)
                         self.drawEquipmentChooser()
                         continue
-                    if self.currSelectedLevel > 1:
+                    elif self.inChoosingSkin:
+                        self.changeSkin(-1)
+                        continue
+                    elif self.inChoosingLevel and self.currSelectedLevel > 1:
                         self.currSelectedLevel -= 1
                         self.drawLevelChooser()
                 elif event.key == pygame.K_RIGHT or event.key == pygame.K_l:
@@ -259,14 +285,20 @@ class Menu:
                         self.currSelectedEquipment = (self.currSelectedEquipment + 1) % len(self.equipmentOptions)
                         self.drawEquipmentChooser()
                         continue
-                    if self.currSelectedLevel < self.levelCount:
+                    elif self.inChoosingSkin:
+                        self.changeSkin(1)
+                        continue
+                    elif self.inChoosingLevel and self.currSelectedLevel < self.levelCount:
                         self.currSelectedLevel += 1
                         self.drawLevelChooser()
                 elif event.key == pygame.K_RETURN:
                     if self.inChoosingEquipment:
                         self.equipment.selected = self.equipmentOptions[self.currSelectedEquipment]
                         self.inChoosingEquipment = False
-                        self.drawMenuBackground()
+                        continue
+                    if self.inChoosingSkin:
+                        self.inChoosingSkin = False
+                        self.state = 2
                         continue
                     if self.inChoosingLevel:
                         self.inChoosingLevel = False
@@ -282,9 +314,11 @@ class Menu:
                         elif self.state == 1:
                             self.chooseEquipment()
                         elif self.state == 2:
+                            self.chooseSkin()
+                        elif self.state == 3:
                             self.inSettings = True
                             self.state = 0
-                        elif self.state == 3:
+                        elif self.state == 4:
                             pygame.quit()
                             sys.exit()
                     else:
@@ -307,3 +341,11 @@ class Menu:
                         elif self.state == 2:
                             self.inSettings = False
         pygame.display.update()
+
+    def changeSkin(self, direction):
+        skins = ("red", "green", "yellow")
+        index = skins.index(self.selectedSkin)
+        self.selectedSkin = skins[(index + direction) % len(skins)]
+        self.level.sprites.setMarioSkin(self.selectedSkin)
+        self.drawMenuBackground(False)
+        self.drawSkinChooser()
